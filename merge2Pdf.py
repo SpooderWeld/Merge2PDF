@@ -1,20 +1,18 @@
 import os
-from idlelib.replace import replace
 from sys import argv
 from tkinter import Tk, filedialog
 from PyPDF2 import PdfWriter
-from PyPDF2.generic import AnnotationBuilder
-from PIL import Image
-from docx2pdf import convert
 from subprocess import run
 
 debug_mode = False
 open_file_on_finish = True
 open_path_on_finish = True
-supported_types = [("All files", "*.*"),("PDF", ".pdf"), ("JPG", ".jpg"), ("JPEG", ".jpeg"), ("PNG", ".png"), ("DOCX", ".docx"),
+supported_types = [("All files", "*.*"), ("PDF", ".pdf"), ("JPG", ".jpg"), ("JPEG", ".jpeg"), ("PNG", ".png"),
+                   ("DOCX", ".docx"),
                    ("TXT", ".txt")]  # .pptx?
 
 output = PdfWriter()
+
 
 def get_paths():
     while True:
@@ -23,7 +21,7 @@ def get_paths():
             root.withdraw()
             file_path = filedialog.askopenfilenames(
                 title="Choose files",
-                filetypes= supported_types
+                filetypes=supported_types
 
             )
             if file_path:
@@ -60,15 +58,25 @@ def merge(filelist):
 
 
 def image_handler(path):
-    w, h = Image.open(path).size
-    output.addBlankPage(width=w, height=h)
-    with open(path, "rb") as f:
-        output.add_attachment(path, f.read())
+    from PIL import Image
+    from reportlab.pdfgen import canvas
+    buff_path = os.path.dirname(path) + r"\Merge2PdfBuff.pdf"
+    img = Image.open(path)
+    w, h = img.size
+    c = canvas.Canvas(buff_path, pagesize=(w, h))
+    c.drawImage(path, 0, 0, width=w, height=h)
+    c.save()
+    print("Created buffer file")
+    output.append(buff_path)
+    if os.path.exists(buff_path):
+        os.remove(buff_path)
+        print("Buffer file deleted")
 
 
 def docx_handler(path):
-    buff_path = os.path.dirname(path)+r"\Merge2PdfBuff.pdf"
-    with open(buff_path,"wb") as f:
+    from docx2pdf import convert
+    buff_path = os.path.dirname(path) + r"\Merge2PdfBuff.pdf"
+    with open(buff_path, "wb") as f:
         print("Created buffer file")
     convert(path, buff_path)
     output.append(buff_path)
@@ -78,20 +86,31 @@ def docx_handler(path):
 
 
 def txt_handler(path):
-    output.addBlankPage(width=595, height=842)
-    with open(path, "r") as f:
-        annotation = AnnotationBuilder.free_text(
-            f.read(),
-            rect=(25, 25, 595 - 25, 842 - 25),
-            font="Times New Roman",
-            border_color="ffffff",
-        )
-        output.add_annotation(len(output.pages), annotation)
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.pagesizes import A4
+    buff_path = os.path.dirname(path) + r"\Merge2PdfBuff.pdf"
+
+    c = canvas.Canvas(buff_path, pagesize=A4)
+    width, height = A4
+    with open(path, 'r', encoding='utf-8') as f:
+        y = height - 40
+        for line in f:
+            c.drawString(40, y, line.strip())
+            y -= 15
+            if y < 40:
+                c.showPage()
+                y = height - 40
+    c.save()
+    print("Created buffer file")
+    output.append(buff_path)
+    if os.path.exists(buff_path):
+        os.remove(buff_path)
+        print("Buffer file deleted")
 
 
 def welcome_message():
     print("Merge2Pdf")
-    print("Supported types:", [i[1] for i in supported_types[1:]])
+    print("Supported types:", *[i[1] for i in supported_types[1:]])
     print()
 
 
@@ -110,7 +129,6 @@ def create_pdf(file_reference):
 
 
 def main():
-
     if not debug_mode:
         try:
             welcome_message()
@@ -140,6 +158,9 @@ def main():
         print_order(filelist)
         merge(filelist)
         output_path = create_pdf(filelist[0])
+        if open_file_on_finish:
+            os.startfile(output_path)
+
 
 if __name__ == "__main__":
     main()

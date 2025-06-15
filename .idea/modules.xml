@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/mergeToPdf.iml" filepath="$PROJECT_DIR$/.idea/mergeToPdf.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/merge2Pdf.iml" filepath="$PROJECT_DIR$/.idea/merge2Pdf.iml" />
     </modules>
   </component>
 </project>
