@@ -54,6 +54,8 @@ def merge(filelist):
             docx_handler(path)
         elif ext == ".txt":
             txt_handler(path)
+        else:
+            print(f"Unsupported extension ({ext}), skipping...")
     print("Merged!\n")
 
 
